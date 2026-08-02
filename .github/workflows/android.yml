@@ -38,6 +38,9 @@ jobs:
           # MIT-licensed cache (no proprietary gradle-actions-caching terms)
           cache-provider: basic
 
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --no-daemon
 

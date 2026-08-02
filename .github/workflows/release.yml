@@ -36,6 +36,9 @@ jobs:
         with:
           cache-provider: basic
 
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
       - name: Build release APK
         # ciDebugSign: installable APK until a Play Store keystore is configured
         run: ./gradlew :app:assembleRelease -PciDebugSign=true --no-daemon
