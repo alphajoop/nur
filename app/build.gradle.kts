@@ -26,6 +26,11 @@ android {
             optimization {
                 enable = false
             }
+            // Used by GitHub Actions (-PciDebugSign=true) so the release APK is installable
+            // before a dedicated Play Store keystore is configured.
+            if (project.hasProperty("ciDebugSign")) {
+                signingConfig = signingConfigs.getByName("debug")
+            }
         }
     }
     compileOptions {
