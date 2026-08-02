@@ -67,6 +67,24 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 L’APK debug se trouve dans `app/build/outputs/apk/debug/`.
 
+## CI & Releases (GitHub Actions)
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `android.yml` | push / PR on `main` | Build, unit tests, upload debug APK artifact |
+| `release.yml` | tag `v*` | GitHub Release + installable APK (`nur-x.y.z.apk`) |
+
+Actions pin recent majors (as of 2026): `checkout@v7`, `setup-java@v5`, `setup-android@v4`, `setup-gradle@v6`, `upload-artifact@v7`, `action-gh-release@v3`. Dependabot watches `.github/workflows` weekly.
+
+### Releases
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The release APK is temporarily signed with the debug key (fine for testers). For Play Store, add a real release keystore and GitHub secrets.
+
 ## Persistance (DataStore)
 
 Clés principales dans `prayer_preferences` :
