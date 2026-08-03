@@ -58,6 +58,7 @@ fun AppScaffold(
     val summary by viewModel.statsSummary.collectAsStateWithLifecycle()
     val history by viewModel.displayHistory.collectAsStateWithLifecycle()
     val userName by viewModel.userName.collectAsStateWithLifecycle()
+    val city by viewModel.city.collectAsStateWithLifecycle()
 
     BackHandler(enabled = true) {
         if (!viewModel.navigateBack()) onExit()
@@ -140,8 +141,10 @@ fun AppScaffold(
 
                 AppDestination.Profile -> ProfileScreen(
                     userName = userName,
+                    city = city,
                     summary = summary,
                     onUserNameChanged = viewModel::onUserNameChanged,
+                    onCityChanged = viewModel::onCityChanged,
                     contentPadding = contentPadding
                 )
             }

@@ -1,12 +1,16 @@
 package com.example.mysalat.ui.profile
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,8 +20,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.mysalat.data.City
+import com.example.mysalat.data.CityCatalog
 import com.example.mysalat.data.StatsSummary
 import com.example.mysalat.ui.components.ButtonVariant
 import com.example.mysalat.ui.components.DialogActions
@@ -32,20 +41,23 @@ import com.example.mysalat.ui.placeholder.ComingSoonScreen
 import com.example.mysalat.ui.theme.MySalatTheme
 import com.example.mysalat.ui.theme.Radius
 import com.example.mysalat.ui.theme.Spacing
+import com.example.mysalat.ui.theme.brand
 
 /**
- * Profile tab. The only working setting today is the first name used by the
- * home greeting; everything else is announced as upcoming.
+ * Profile tab: editable first name, city for prayer times, and upcoming features.
  */
 @Composable
 fun ProfileScreen(
     userName: String,
+    city: City,
     summary: StatsSummary,
     onUserNameChanged: (String) -> Unit,
+    onCityChanged: (String) -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
-    var editing by remember { mutableStateOf(false) }
+    var editingName by remember { mutableStateOf(false) }
+    var editingCity by remember { mutableStateOf(false) }
 
     ComingSoonScreen(
         title = "Profil",
@@ -62,20 +74,35 @@ fun ProfileScreen(
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 IdentityCard(
                     userName = userName,
-                    onEdit = { editing = true }
+                    onEdit = { editingName = true }
+                )
+                CityCard(
+                    city = city,
+                    onEdit = { editingCity = true }
                 )
                 SummaryStrip(summary = summary)
             }
         }
     )
 
-    if (editing) {
+    if (editingName) {
         NameDialog(
             currentName = userName,
-            onDismiss = { editing = false },
+            onDismiss = { editingName = false },
             onConfirm = { newName ->
                 onUserNameChanged(newName)
-                editing = false
+                editingName = false
+            }
+        )
+    }
+
+    if (editingCity) {
+        CityDialog(
+            currentCityId = city.id,
+            onDismiss = { editingCity = false },
+            onConfirm = { cityId ->
+                onCityChanged(cityId)
+                editingCity = false
             }
         )
     }
@@ -118,6 +145,49 @@ private fun IdentityCard(
                 onClick = onEdit,
                 variant = ButtonVariant.Secondary,
                 icon = AppIcons.Settings,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun CityCard(
+    city: City,
+    onEdit: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    GlassCard(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconBadge(icon = AppIcons.Mosque, size = 48.dp)
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "Ville pour les horaires",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = city.displayName,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            ModernButton(
+                text = "Changer de ville",
+                onClick = onEdit,
+                variant = ButtonVariant.Secondary,
+                icon = AppIcons.Hijri,
                 modifier = Modifier.fillMaxWidth()
             )
         }
@@ -207,12 +277,81 @@ private fun NameDialog(
     }
 }
 
-@Preview(name = "Profil clair", heightDp = 900)
+@Composable
+private fun CityDialog(
+    currentCityId: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var selectedId by remember { mutableStateOf(currentCityId) }
+    val haptic = LocalHapticFeedback.current
+    val brand = MaterialTheme.brand
+
+    ModernDialog(
+        title = "Choisir une ville",
+        subtitle = "Les horaires de prière seront calculés pour cette ville.",
+        onDismiss = onDismiss
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 320.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+        ) {
+            CityCatalog.cities.forEach { city ->
+                val selected = city.id == selectedId
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.RadioButton) {
+                            haptic.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            selectedId = city.id
+                        }
+                        .background(
+                            if (selected) brand.greenWash
+                            else MaterialTheme.colorScheme.surface
+                        )
+                        .padding(horizontal = Spacing.sm, vertical = Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = city.displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                    )
+                    if (selected) {
+                        IconBadge(
+                            icon = AppIcons.Check,
+                            size = 28.dp,
+                            iconSize = IconSize.sm,
+                            cornerRadius = Radius.sm
+                        )
+                    }
+                }
+            }
+        }
+        DialogActions(
+            confirmText = "Enregistrer",
+            onConfirm = { onConfirm(selectedId) },
+            dismissText = "Annuler",
+            onDismiss = onDismiss
+        )
+    }
+}
+
+@Preview(name = "Profil clair", heightDp = 1100)
 @Composable
 private fun ProfileLightPreview() {
     MySalatTheme(darkTheme = false) {
         ProfileScreen(
-            userName = "Ahmed",
+            userName = "Alpha",
+            city = CityCatalog.default,
             summary = StatsSummary(
                 completeDays = 12,
                 prayerCompletionPercent = 74,
@@ -220,18 +359,20 @@ private fun ProfileLightPreview() {
                 trackedDays = 21
             ),
             onUserNameChanged = {},
+            onCityChanged = {},
             modifier = Modifier.background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(vertical = Spacing.md)
         )
     }
 }
 
-@Preview(name = "Profil sombre", heightDp = 900)
+@Preview(name = "Profil sombre", heightDp = 1100)
 @Composable
 private fun ProfileDarkPreview() {
     MySalatTheme(darkTheme = true) {
         ProfileScreen(
             userName = "Yacine",
+            city = CityCatalog.byId("paris"),
             summary = StatsSummary(
                 completeDays = 3,
                 prayerCompletionPercent = 41,
@@ -239,6 +380,7 @@ private fun ProfileDarkPreview() {
                 trackedDays = 9
             ),
             onUserNameChanged = {},
+            onCityChanged = {},
             modifier = Modifier.background(MaterialTheme.colorScheme.background),
             contentPadding = PaddingValues(vertical = Spacing.md)
         )

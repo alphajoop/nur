@@ -4,10 +4,13 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mysalat.data.DayHistoryRecord
+import com.example.mysalat.data.City
+import com.example.mysalat.data.CityCatalog
 import com.example.mysalat.data.Prayer
 import com.example.mysalat.data.PrayerDayState
 import com.example.mysalat.data.PrayerSchedule
 import com.example.mysalat.data.PrayerStorage
+import com.example.mysalat.data.PrayerTimesCalculator
 import com.example.mysalat.data.StatsSummary
 import com.example.mysalat.data.VerseLibrary
 import com.example.mysalat.ui.navigation.AppDestination
@@ -18,10 +21,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
@@ -63,13 +68,21 @@ class PrayerViewModel(application: Application) : AndroidViewModel(application) 
             initialValue = PrayerStorage.DEFAULT_USER_NAME
         )
 
+    val city: StateFlow<City> = storage.cityIdFlow
+        .map { CityCatalog.byId(it) }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = CityCatalog.default
+        )
+
     /**
      * Everything the home screen needs, recombined whenever the clock ticks,
-     * completions change, or the user renames themselves.
+     * completions change, the city changes, or the user renames themselves.
      */
     val homeState: StateFlow<HomeUiState> =
-        combine(uiState, now, userName) { day, currentTime, name ->
-            buildHomeState(day, currentTime, name)
+        combine(uiState, now, userName, city) { day, currentTime, name, selectedCity ->
+            buildHomeState(day, currentTime, name, selectedCity)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -104,7 +117,8 @@ class PrayerViewModel(application: Application) : AndroidViewModel(application) 
         }
         viewModelScope.launch {
             while (true) {
-                _now.value = LocalTime.now().withNano(0)
+                val zone = ZoneId.of(city.value.timeZoneId)
+                _now.value = LocalTime.now(zone).withNano(0)
                 delay(1_000)
             }
         }
@@ -134,25 +148,36 @@ class PrayerViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun onCityChanged(cityId: String) {
+        viewModelScope.launch {
+            storage.setCityId(cityId)
+        }
+    }
+
     private fun buildHomeState(
         day: PrayerDayState,
         currentTime: LocalTime,
-        name: String
+        name: String,
+        selectedCity: City
     ): HomeUiState {
-        val next = PrayerSchedule.nextPrayer(currentTime)
+        val today = LocalDate.now(ZoneId.of(selectedCity.timeZoneId))
+        val times = PrayerTimesCalculator.timesFor(selectedCity, today)
+        val tomorrowFajr = PrayerTimesCalculator.timesFor(selectedCity, today.plusDays(1))
+            .getValue(Prayer.FAJR)
+        val next = PrayerSchedule.nextPrayer(currentTime, times, tomorrowFajr)
         val rows = Prayer.entries.map { prayer ->
             PrayerRowState(
                 prayer = prayer,
-                time = PrayerSchedule.formattedTime(prayer),
+                time = PrayerSchedule.formattedTime(prayer, times),
                 completed = day.completions[prayer] == true,
                 isNext = !next.isTomorrow && next.prayer == prayer,
-                hasPassed = PrayerSchedule.hasPassed(prayer, currentTime)
+                hasPassed = PrayerSchedule.hasPassed(prayer, currentTime, times)
             )
         }
-        val today = LocalDate.now()
 
         return HomeUiState(
             userName = name,
+            cityName = selectedCity.displayName,
             dayPart = DayPart.of(currentTime),
             formattedDate = today.toFrenchLongDate(),
             next = next,

@@ -1,9 +1,11 @@
 package com.example.mysalat
 
+import com.example.mysalat.data.CityCatalog
 import com.example.mysalat.data.NextPrayerInfo
 import com.example.mysalat.data.Prayer
 import com.example.mysalat.data.PrayerSchedule
 import com.example.mysalat.data.PrayerStorage
+import com.example.mysalat.data.PrayerTimesCalculator
 import com.example.mysalat.data.Verse
 import com.example.mysalat.data.VerseLibrary
 import java.time.Duration
@@ -40,13 +42,14 @@ data class PrayerRowState(
 
 /**
  * Everything the home screen renders, recomputed as the clock ticks and as
- * completions change.
+ * completions / city change.
  */
 data class HomeUiState(
     val userName: String = PrayerStorage.DEFAULT_USER_NAME,
+    val cityName: String = CityCatalog.default.displayName,
     val dayPart: DayPart = DayPart.Morning,
     val formattedDate: String = "",
-    val next: NextPrayerInfo = PrayerSchedule.nextPrayer(LocalTime.of(0, 0)),
+    val next: NextPrayerInfo = defaultNext(),
     val rows: List<PrayerRowState> = emptyList(),
     val completedCount: Int = 0,
     val streakCount: Int = 0,
@@ -66,6 +69,15 @@ data class HomeUiState(
             4 -> "Une dernière prière, courage"
             else -> "Journée complète, qu'Allah accepte"
         }
+
+    companion object {
+        private fun defaultNext(): NextPrayerInfo {
+            val today = LocalDate.now()
+            val city = CityCatalog.default
+            val times = PrayerTimesCalculator.timesFor(city, today)
+            return PrayerSchedule.nextPrayer(LocalTime.of(0, 0), times)
+        }
+    }
 }
 
 /** French date such as "samedi 1 août 2026". */

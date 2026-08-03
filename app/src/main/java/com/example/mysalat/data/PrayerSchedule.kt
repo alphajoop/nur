@@ -16,33 +16,26 @@ data class NextPrayerInfo(
 )
 
 /**
- * Fixed, display-only prayer times. The app intentionally does not compute
- * astronomical times or request location; these values simply give the home
- * screen a realistic schedule to count down against.
+ * Helpers over a day's prayer timetable (produced by [PrayerTimesCalculator]).
  */
 object PrayerSchedule {
 
-    private val times: Map<Prayer, LocalTime> = mapOf(
-        Prayer.FAJR to LocalTime.of(5, 42),
-        Prayer.DHUHR to LocalTime.of(13, 30),
-        Prayer.ASR to LocalTime.of(17, 15),
-        Prayer.MAGHRIB to LocalTime.of(21, 8),
-        Prayer.ISHA to LocalTime.of(22, 45)
-    )
-
     private val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-    fun timeFor(prayer: Prayer): LocalTime = times.getValue(prayer)
+    fun formattedTime(time: LocalTime): String = formatter.format(time)
 
-    fun formattedTime(prayer: Prayer): String = formatter.format(timeFor(prayer))
-
-    val ordered: List<Pair<Prayer, LocalTime>> = Prayer.entries.map { it to times.getValue(it) }
+    fun formattedTime(prayer: Prayer, times: Map<Prayer, LocalTime>): String =
+        formattedTime(times.getValue(prayer))
 
     /**
-     * Returns the upcoming prayer for [now], wrapping to tomorrow's Fajr once
-     * Isha has passed.
+     * Returns the upcoming prayer for [now]. After Isha, wraps to [tomorrowFajr].
      */
-    fun nextPrayer(now: LocalTime): NextPrayerInfo {
+    fun nextPrayer(
+        now: LocalTime,
+        times: Map<Prayer, LocalTime>,
+        tomorrowFajr: LocalTime = times.getValue(Prayer.FAJR)
+    ): NextPrayerInfo {
+        val ordered = Prayer.entries.map { it to times.getValue(it) }
         val upcoming = ordered.firstOrNull { (_, time) -> time.isAfter(now) }
 
         return if (upcoming != null) {
@@ -53,19 +46,18 @@ object PrayerSchedule {
                 isTomorrow = false
             )
         } else {
-            val fajr = timeFor(Prayer.FAJR)
             val untilMidnight = Duration.between(now, LocalTime.MAX).plusSeconds(1)
             NextPrayerInfo(
                 prayer = Prayer.FAJR,
-                time = fajr,
-                remaining = untilMidnight.plus(Duration.between(LocalTime.MIN, fajr)),
+                time = tomorrowFajr,
+                remaining = untilMidnight.plus(Duration.between(LocalTime.MIN, tomorrowFajr)),
                 isTomorrow = true
             )
         }
     }
 
-    /** True once a prayer's time has passed for the current day. */
-    fun hasPassed(prayer: Prayer, now: LocalTime): Boolean = !timeFor(prayer).isAfter(now)
+    fun hasPassed(prayer: Prayer, now: LocalTime, times: Map<Prayer, LocalTime>): Boolean =
+        !times.getValue(prayer).isAfter(now)
 }
 
 /** Formats a duration as `H:MM:SS`, or `MM:SS` when under an hour. */
