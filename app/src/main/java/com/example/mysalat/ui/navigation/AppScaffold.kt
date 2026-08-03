@@ -1,6 +1,5 @@
 package com.example.mysalat.ui.navigation
 
-import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -24,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -39,8 +37,8 @@ import com.example.mysalat.ui.profile.ProfileScreen
 import com.example.mysalat.ui.theme.Motion
 import com.example.mysalat.ui.theme.Spacing
 
-/** Height reserved for the floating bar so content can scroll clear of it. */
-private val BottomBarHeight = 76.dp
+/** Height reserved for the floating bar (icons + labels) so content clears it. */
+private val BottomBarHeight = 96.dp
 
 /**
  * App shell: holds the single [PrayerViewModel], swaps destinations with a
@@ -67,9 +65,9 @@ fun AppScaffold(
     val statusBarPadding = WindowInsets.statusBars.asPaddingValues()
     val navigationBarPadding = WindowInsets.navigationBars.asPaddingValues()
 
+    // Bottom only: top status-bar inset stays on the shell so it never scrolls away.
     val contentPadding = PaddingValues(
-        top = statusBarPadding.calculateTopPadding() + Spacing.sm,
-        bottom = navigationBarPadding.calculateBottomPadding() + BottomBarHeight + Spacing.md
+        bottom = navigationBarPadding.calculateBottomPadding() + BottomBarHeight + Spacing.xl
     )
 
     Box(
@@ -79,6 +77,9 @@ fun AppScaffold(
     ) {
         AnimatedContent(
             targetState = destination,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = statusBarPadding.calculateTopPadding() + Spacing.sm),
             transitionSpec = {
                 // Slide in the direction of travel along the tab strip.
                 val forward = targetState.ordinal > initialState.ordinal
@@ -151,7 +152,7 @@ fun AppScaffold(
         }
 
         BottomBarScrim(
-            height = navigationBarPadding.calculateBottomPadding() + BottomBarHeight + Spacing.lg,
+            height = navigationBarPadding.calculateBottomPadding() + BottomBarHeight + Spacing.xl,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
 
@@ -171,8 +172,7 @@ fun AppScaffold(
 }
 
 /**
- * Fades scrolling content out beneath the floating bar. On Android 12+ the
- * gradient itself is blurred to remove any visible banding.
+ * Soft opaque fade so scrolling content does not read through the floating bar.
  */
 @Composable
 private fun BottomBarScrim(
@@ -180,22 +180,16 @@ private fun BottomBarScrim(
     modifier: Modifier = Modifier
 ) {
     val background = MaterialTheme.colorScheme.background
-    val blurModifier = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        Modifier.blur(12.dp)
-    } else {
-        Modifier
-    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
-            .then(blurModifier)
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        background.copy(alpha = 0f),
-                        background.copy(alpha = 0.85f),
+                        background.copy(alpha = 0.4f),
+                        background.copy(alpha = 0.95f),
                         background
                     )
                 )

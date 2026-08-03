@@ -105,8 +105,7 @@ fun GradientSurface(
 }
 
 /**
- * Translucent "glass" panel: used behind the floating bottom bar so content
- * scrolling underneath stays subtly visible.
+ * Opaque floating panel behind the bottom tab bar.
  */
 @Composable
 fun GlassPanel(
@@ -127,7 +126,7 @@ fun GlassPanel(
                 spotColor = brand.shadow
             )
             .clip(shape)
-            .background(brand.glassSurface)
+            .background(brand.cardSurface)
             .border(Elevation.hairline, brand.cardBorder, shape),
         content = content
     )

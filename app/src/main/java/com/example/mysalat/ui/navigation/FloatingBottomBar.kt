@@ -2,7 +2,6 @@ package com.example.mysalat.ui.navigation
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -22,7 +20,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -38,9 +35,9 @@ import com.example.mysalat.ui.theme.Motion
 import com.example.mysalat.ui.theme.Spacing
 
 /**
- * Detached, pill-shaped tab bar sitting above the bottom edge. The selected tab
- * grows a tinted pill behind its icon and reveals its label; unselected tabs
- * stay icon-only so the bar remains compact.
+ * Detached, pill-shaped tab bar sitting above the bottom edge. Every tab shows
+ * its label; the selected tab grows a tinted pill behind its icon and uses the
+ * primary tint for both icon and label.
  */
 @Composable
 fun FloatingBottomBar(
@@ -92,11 +89,6 @@ private fun BottomBarItem(
         animationSpec = Motion.springBouncy(),
         label = "tabIndicatorSize"
     )
-    val labelAlpha by animateFloatAsState(
-        targetValue = if (selected) 1f else 0f,
-        animationSpec = Motion.fadeFast(),
-        label = "tabLabelAlpha"
-    )
 
     Column(
         modifier = modifier
@@ -135,17 +127,11 @@ private fun BottomBarItem(
             )
         }
 
-        // Reserved height keeps the bar from resizing as selection moves.
-        Box(
-            modifier = Modifier.height(14.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = destination.label,
-                style = MaterialTheme.typography.labelSmall,
-                color = tint,
-                modifier = Modifier.alpha(labelAlpha)
-            )
-        }
+        Text(
+            text = destination.label,
+            style = MaterialTheme.typography.labelSmall,
+            color = tint,
+            maxLines = 1
+        )
     }
 }
