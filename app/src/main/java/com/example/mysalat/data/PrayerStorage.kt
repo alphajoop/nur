@@ -51,6 +51,7 @@ class PrayerStorage(private val context: Context) {
         val STREAK_AWARDED_DATE = stringPreferencesKey("streak_awarded_date")
         val HISTORY = stringPreferencesKey("history")
         val USER_NAME = stringPreferencesKey("user_name")
+        val CITY_ID = stringPreferencesKey("city_id")
 
         fun forPrayer(prayer: Prayer): Preferences.Key<Boolean> = when (prayer) {
             Prayer.FAJR -> FAJR
@@ -80,6 +81,10 @@ class PrayerStorage(private val context: Context) {
         prefs[Keys.USER_NAME]?.takeIf { it.isNotBlank() } ?: DEFAULT_USER_NAME
     }
 
+    val cityIdFlow: Flow<String> = context.prayerDataStore.data.map { prefs ->
+        prefs[Keys.CITY_ID]?.takeIf { it.isNotBlank() } ?: CityCatalog.default.id
+    }
+
     suspend fun setUserName(name: String) {
         val cleaned = name.trim().take(MAX_USER_NAME_LENGTH)
         context.prayerDataStore.edit { prefs ->
@@ -88,6 +93,13 @@ class PrayerStorage(private val context: Context) {
             } else {
                 prefs[Keys.USER_NAME] = cleaned
             }
+        }
+    }
+
+    suspend fun setCityId(cityId: String) {
+        val resolved = CityCatalog.byId(cityId).id
+        context.prayerDataStore.edit { prefs ->
+            prefs[Keys.CITY_ID] = resolved
         }
     }
 

@@ -24,13 +24,16 @@ import androidx.compose.ui.unit.dp
 import com.example.mysalat.DayPart
 import com.example.mysalat.HomeUiState
 import com.example.mysalat.PrayerRowState
+import com.example.mysalat.data.CityCatalog
 import com.example.mysalat.data.Prayer
 import com.example.mysalat.data.PrayerSchedule
+import com.example.mysalat.data.PrayerTimesCalculator
 import com.example.mysalat.data.VerseLibrary
 import com.example.mysalat.ui.components.SectionHeader
 import com.example.mysalat.ui.theme.MySalatTheme
 import com.example.mysalat.ui.theme.Motion
 import com.example.mysalat.ui.theme.Spacing
+import java.time.LocalDate
 import java.time.LocalTime
 
 /**
@@ -98,18 +101,22 @@ fun HomeScreen(
 
 private fun previewState(completed: Int): HomeUiState {
     val now = LocalTime.of(11, 12)
+    val city = CityCatalog.default
+    val times = PrayerTimesCalculator.timesFor(city, LocalDate.of(2026, 8, 1))
+    val next = PrayerSchedule.nextPrayer(now, times)
     return HomeUiState(
-        userName = "Ahmed",
+        userName = "Alpha",
+        cityName = city.displayName,
         dayPart = DayPart.of(now),
         formattedDate = "samedi 1 août 2026",
-        next = PrayerSchedule.nextPrayer(now),
+        next = next,
         rows = Prayer.entries.mapIndexed { index, prayer ->
             PrayerRowState(
                 prayer = prayer,
-                time = PrayerSchedule.formattedTime(prayer),
+                time = PrayerSchedule.formattedTime(prayer, times),
                 completed = index < completed,
-                isNext = PrayerSchedule.nextPrayer(now).prayer == prayer,
-                hasPassed = PrayerSchedule.hasPassed(prayer, now)
+                isNext = !next.isTomorrow && next.prayer == prayer,
+                hasPassed = PrayerSchedule.hasPassed(prayer, now, times)
             )
         },
         completedCount = completed,

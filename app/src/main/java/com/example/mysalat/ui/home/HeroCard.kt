@@ -89,7 +89,13 @@ fun HeroCard(
                 }
                 if (state.next.isTomorrow) {
                     Text(
-                        text = "demain",
+                        text = "demain · ${state.cityName}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = onHero.copy(alpha = 0.75f)
+                    )
+                } else {
+                    Text(
+                        text = state.cityName,
                         style = MaterialTheme.typography.labelMedium,
                         color = onHero.copy(alpha = 0.75f)
                     )
