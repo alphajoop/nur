@@ -23,8 +23,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.mysalat.BuildConfig
 import com.example.mysalat.data.City
 import com.example.mysalat.data.CityCatalog
 import com.example.mysalat.data.StatsSummary
@@ -81,6 +83,15 @@ fun ProfileScreen(
                     onEdit = { editingCity = true }
                 )
                 SummaryStrip(summary = summary)
+                Text(
+                    text = "Nur · ${BuildConfig.VERSION_NAME}",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = Spacing.sm)
+                )
             }
         }
     )
